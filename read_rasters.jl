@@ -2,10 +2,9 @@
 
 # load packages
 using ArchGDAL
-const AG = ArchGDAL
+using GeoData
+using GeoFormatTypes
+# using Plots
 
-# load ele data as a test
-dataset = AG.readraster("../elemove/data/kruger_temp_200m.tif")
-
-# get drivers
-dataset => [AG.width, AG.height]
+# check projection
+tempgd = GDALarray("data/kruger_temperature_UTM.tif"; mappedcrs=EPSG(4326)) |> GeoArray
