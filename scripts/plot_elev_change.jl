@@ -27,3 +27,18 @@ R"ggplot($data)+
                     col = scientific_name),
                     show.legend = FALSE)+
     facet_grid(~year)"
+
+# plot elevation mode change
+data = CSV.read("data/output/data_species_elev_mode.csv", DataFrame)
+# filter for genuses and few counts
+filter!(row -> !(occursin(r"sp.", row.scientific_name)), data)
+transform!(groupby(data, :scientific_name), nrow => :species_obs)
+filter!(row -> row.species_obs > 20, data)
+
+R"ggplot($data)+
+    geom_line(aes(factor(month), elev_mode,
+                    col = scientific_name,
+                    group = interaction(scientific_name, year)),
+                    size = 0.1, alpha = 0.4,
+                    show.legend = FALSE)+
+    facet_grid(~year)"
