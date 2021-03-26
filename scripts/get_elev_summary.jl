@@ -29,3 +29,13 @@ data_elev_count = combine(groupby(data,
         nrow => :count)
 # write also
 CSV.write("data/output/data_species_elevation_count.csv", data_elev_count)
+
+# filter for mode of elevation
+transform!(groupby(data_elev_count,
+            [:scientific_name, :year, :month]),
+            :count => maximum => :mode_elev)
+data_elev_mode = filter(row -> row.count == row.mode_elev, data_elev_count)
+data_elev_mode = select(data_elev_mode, 
+    :scientific_name, :year, :month, :elev_round => :elev_mode)
+
+CSV.write("data/output/data_species_elev_mode.csv", data_elev_mode)
