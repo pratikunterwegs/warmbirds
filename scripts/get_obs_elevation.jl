@@ -29,7 +29,7 @@ elevation_j = rcopy(elevation_data)
 
 # add to df and remove NA rows
 ebird_observations.elevation = elevation_j
-dropmissing!(copy(ebird_observations))
+ebird_observations = dropmissing(ebird_observations)
 
 # save
 CSV.write("data/output/data_observation_elevation.csv", ebird_observations)
