@@ -1,5 +1,4 @@
 # code to run endemicr from R
-
 using RCall
 using CSV
 using DataFrames
@@ -14,7 +13,7 @@ R"hills$name = c('Anamalais', 'Nilgiris')"
 
 # ranges
 R"ranges = st_read('data/spatial/soi_ranges.gpkg', 
-    query = 'SELECT * FROM soi_ranges LIMIT 10')"
+    query = 'SELECT * FROM soi_ranges')"
 
 # get endemicity
 R"data = lapply(
@@ -45,11 +44,12 @@ R"names(data) = ranges$SCINAME"
 
 # rbindlist
 R"data_copy = data"
-R"data_copy = Map(function(df, name) {
+R"data_copy = Map(function(df, name, seasonality) {
     df$sciname = name
+    df$seasonality = seasonality
     df
   }, 
-  data_copy, names(data_copy)
+  data_copy, names(data_copy), ranges$SEASONAL
 )"
 R"data_copy = data_copy[sapply(data_copy, is.data.frame)]"
 R"data_copy = rbindlist(data_copy)"
