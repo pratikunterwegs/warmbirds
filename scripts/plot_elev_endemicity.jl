@@ -6,40 +6,61 @@ using RCall
 using Gadfly
 using Statistics
 using StatsBase
+using Cairo
+using Fontconfig
 
 # read data
 data = CSV.read("data/output/data_species_elevation_summary.csv", DataFrame)
 data_endemic = CSV.read("data/output/data_endemicity.csv", DataFrame)
+# sum endemicity over hills per season
+data_endemic = combine(groupby(data_endemic, [:sciname, :seasonality]), 
+        :p_range => (f(x) = sum(skipmissing(x)))  => :endemicity)
+
 # combine
 data = leftjoin(data, data_endemic, on = :scientific_name => :sciname)
 
 # filter missing
-filter!(row -> (!ismissing(row.p_range)) & (row.seasonality != 4), data)
+filter!(row -> (!ismissing(row.endemicity)) & (row.seasonality in [1, 3]), data)
 
 # summarise data
-data.endemicity_round = round.(data.p_range, digits = 2)
-data_elev_endem_summary = combine(groupby(data, [:seasonality, :endemicity_round]),
+data.endemicity_round = round.(data.endemicity, digits = 1)
+data_elev_endem_summary = combine(groupby(data, 
+    [:seasonality, :endemicity_round, :month]),
         :elevation_mean .=> [mean, std])
+# sort data
+sort!(data, [:month, :seasonality])
+set_default_plot_size(30cm, 18cm)
 
-set_default_plot_size(25cm, 18cm)
 # plot lines
-plot(data,
+p = plot(data,
     y = :elevation_mean,
     x = :endemicity_round,
-    xgroup = :seasonality,
+    ygroup = :seasonality,
+    xgroup = :month,
     color = :seasonality,
     Geom.subplot_grid(
         Geom.boxplot,
         Coord.cartesian(
-        ymin = 0
+        ymin = 1
         ),
     ),
-    Scale.x_sqrt,
+    Scale.x_discrete,
     Scale.color_discrete,
     Theme(
         background_color = "white"
     )
 )
+
+# save plot
+draw(SVG("figures/fig_elevation_endemicity_month.svg"), p)
+R"library(ggplot2)"
+# now use ggplot
+R"ggplot($data) +
+    geom_boxplot(
+        aes(x = factor(endemicity_round), y = elevation_mean,
+            fill = factor(seasonality))
+    ) + 
+    facet_grid(seasonality ~ month)"
 
 
 
