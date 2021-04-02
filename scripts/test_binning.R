@@ -77,13 +77,24 @@ data_2[, count := .N,
 data_2 = data_2[count > 1000, ]
 data_2 = data_2[complete.cases(data_2),]
 
+# get body mass
+trait_data = readxl::read_excel("data/observations/2020-sheard et al-species-trait-dat.xlsx")
+setDT(trait_data)
+
+# merge traits and data2
+data_2 = merge(data_2, trait_data[, c("Species name", "Body mass (log)")],
+               by.x = "scientific_name", by.y = "Species name")
+data_2[, `:=`(
+  mass = as.double(`Body mass (log)`)
+)]
+data_2 = data_2[complete.cases(data_2),]
+
 ggplot(data_2)+
   geom_smooth(
-    aes(x = endemicity,
+    aes(x = mass,
         y = elevation,
         group = interaction(polygon, range_residency),
         col = range_residency),
-    size = 0.2,
     se = F,
     method = "glm"
   )+
