@@ -22,26 +22,62 @@ data = leftjoin(data, data_endemic, on = :scientific_name => :sciname)
 # filter missing
 filter!(row -> (!ismissing(row.endemicity)) & (row.seasonality in [1, 3]), data)
 
-# summarise data
-data.endemicity_round = round.(data.endemicity, digits = 1)
-data_elev_endem_summary = combine(groupby(data, 
-    [:seasonality, :endemicity_round, :month]),
-        :elevation_mean .=> [mean, std])
+# summarise data using custom round function
+function round_any(x, v)
+    round(round(x / v, digits = 0) * v, digits = 2)
+end
+
+# bin endemicity into 0.05
+data.endemicity_round = round_any.(data.endemicity, 0.05)
+
+# classify months as breeding or not
+check_season(s, m) = s in m ? "br-summer" : "nb-winter"
+data.season = check_season.(data.month, ([3, 4, 5, 6, 7, 8, 9, 10],))
+
+# classify seasonality as range residency
+function check_residency(v)
+    if v == 1
+        "res"
+    elseif v == 2
+        "br"
+    elseif v == 3
+        "nb"
+    else
+        missing
+    end
+end
+
+data.range_residency = check_residency.(data.seasonality)
+
+# filter for endemicity in correct season
+data_filter = filter(row -> row.range_residency == "res" || 
+    (row.range_residency == "nb" && row.season == "nb-winter"),
+    data)
+
+# read in taxonomy
+taxonomy = CSV.read("data/spatial/BOTW/HBW-BirdLife_Checklist_v3_Nov18/HBW-BirdLife_Checklist_Version_3.csv", DataFrame)
+rename!(taxonomy, replace.(names(taxonomy), " " => "_"))
+
+# join to filtered data and keep passeriformes
+data_filter = leftjoin(data_filter, taxonomy, on = :scientific_name => :Scientific_name)
+filter!(row -> row.Order == "PASSERIFORMES", data_filter)
+
 # sort data
-sort!(data, [:month, :seasonality])
+sort!(data_filter, [:season, :range_residency, :endemicity_round])
 set_default_plot_size(30cm, 18cm)
 
 # plot lines
-p = plot(data,
+p = plot(data_filter,
     y = :elevation_mean,
     x = :endemicity_round,
-    ygroup = :seasonality,
-    xgroup = :month,
-    color = :seasonality,
+    xgroup = :season,
+    color = :range_residency,
     Geom.subplot_grid(
         Geom.boxplot,
         Coord.cartesian(
-        ymin = 1
+            xmin = 0,
+            xmax = 0.6,
+            ymin = 1
         ),
     ),
     Scale.x_discrete,
@@ -52,29 +88,4 @@ p = plot(data,
 )
 
 # save plot
-draw(SVG("figures/fig_elevation_endemicity_month.svg"), p)
-R"library(ggplot2)"
-# now use ggplot
-R"ggplot($data) +
-    geom_boxplot(
-        aes(x = factor(endemicity_round), y = elevation_mean,
-            fill = factor(seasonality))
-    ) + 
-    facet_grid(seasonality ~ month)"
-
-
-
-# plot elevation mode change
-data = CSV.read("data/output/data_species_elev_mode.csv", DataFrame)
-# filter for genuses and few counts
-filter!(row -> !(occursin(r"sp.", row.scientific_name)), data)
-transform!(groupby(data, :scientific_name), nrow => :species_obs)
-filter!(row -> row.species_obs > 20, data)
-
-R"ggplot($data)+
-    geom_line(aes(factor(month), elev_mode,
-                    col = scientific_name,
-                    group = interaction(scientific_name, year)),
-                    size = 0.1, alpha = 0.4,
-                    show.legend = FALSE)+
-    facet_grid(~year)"
+draw(SVG("figures/fig_elevation_endemicity_season.svg"), p)
