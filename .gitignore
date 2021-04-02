@@ -39,4 +39,11 @@ vignettes/*.pdf
 .Renviron
 
 # data
-data/
+data/observations/*
+!data/observations/*.txt
+data/output/*
+!data/output/*.txt
+data/spatial/*
+!!data/spatial/*.txt
+!data/spatial/hills_sasia_buffer*
+!data/spatial/hills_sasia_grid*
