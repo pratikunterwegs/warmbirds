@@ -15,7 +15,7 @@ data_small = select(data, :scientific_name, :longitude,
                         :latitude, :observation_date)
 
 # filter for coordinates
-filter!(row -> row.latitude < 12 && row.longitude < 78, data_small)
+filter!(row -> ((row.latitude < 12) || (row.longitude > 90)) , data_small)
 
 # save data
-CSV.write("data/output/data_observation_coords.csv", data_small)
+CSV.write("data/output/data_observation_coords_SW_NE.csv", data_small)
