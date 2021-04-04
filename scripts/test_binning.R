@@ -4,7 +4,7 @@ library(sf)
 library(ggplot2)
 
 # read data and remove weird species and non-passeriformes
-data = fread("data/output/data_observation_elevation.csv")
+data = fread("data/output/data_observation_elevation_WG_all.csv")
 data = data[
   !stringi::stri_detect_regex(scientific_name,
                              "(sp.)|(omestic)|/")
@@ -19,7 +19,7 @@ data = data[Order == "PASSERIFORMES", ]
 data[, Order := NULL]
 
 # load grid
-hills_grid = st_read("data/spatial/hills_sasia_grid.gpkg")
+hills_grid = st_read("data/spatial/hills_sasia_grid_100km.gpkg")
 bbox = c(range(data$longitude), range(data$latitude))
 bbox = st_bbox(c(
   xmin = bbox[1], xmax = bbox[2],
@@ -42,8 +42,15 @@ obs_coords = st_as_sf(
 )
 obs_intersection = st_intersects(obs_coords, wg_grid)
 
+# remove some data
+good_rows = unlist(lapply(unclass(obs_intersection), function(x) length(x) > 0))
+data = data[good_rows]
+
 # assign polygon id
 data$polygon = unlist(unclass(obs_intersection))
+
+# save
+fwrite(data, file = "data/data_observations_polygons.csv")
 
 # basic metrics as sanity check
 data[, month := month(observation_date)]
@@ -80,29 +87,52 @@ data_2 = data_2[complete.cases(data_2),]
 # get body mass
 trait_data = readxl::read_excel("data/observations/2020-sheard et al-species-trait-dat.xlsx")
 setDT(trait_data)
+# 
+# # merge traits and data2
+# data_2 = merge(data_2, trait_data[, c("Species name", "Body mass (log)")],
+#                by.x = "scientific_name", by.y = "Species name")
+# data_2[, `:=`(
+#   mass = as.double(`Body mass (log)`)
+# )]
+# data_2 = data_2[complete.cases(data_2),]
 
-# merge traits and data2
-data_2 = merge(data_2, trait_data[, c("Species name", "Body mass (log)")],
-               by.x = "scientific_name", by.y = "Species name")
-data_2[, `:=`(
-  mass = as.double(`Body mass (log)`)
-)]
-data_2 = data_2[complete.cases(data_2),]
+# sep by season and polygon and run lm
+data_split = split(data_2, by = c("season", "polygon", "range_residency"))
+data_split_lm = lapply(data_split, function(df) {
+  lm(elevation ~ endemicity, data = df)$coef[2]
+})
 
-ggplot(data_2)+
-  geom_smooth(
-    aes(x = mass,
-        y = elevation,
-        group = interaction(polygon, range_residency),
-        col = range_residency),
-    se = F,
-    method = "glm"
-  )+
-  facet_grid( ~ season)
+# match polygon and slope
+data_polygon = unique(data_2[, c("season", "polygon", "range_residency")])
+data_polygon$coef_endem = unlist(data_split_lm)
 
-# sanity check
-wg_grid = dplyr::left_join(wg_grid, data_summary,
+# attach to grid cells
+wg_grid = dplyr::left_join(wg_grid, data_polygon,
                            by = c("polygon_id_wg" = "polygon"))
+
+# plot polygons
+ggplot(wg_grid) +
+  geom_sf(
+    aes(
+      fill = coef_endem
+    )
+  )+
+  facet_grid(range_residency~season)
+
+# ggplot(data_2)+
+#   geom_smooth(
+#     aes(x = endemicity,
+#         y = elevation,
+#         group = interaction(polygon, range_residency),
+#         col = range_residency),
+#     se = F,
+#     method = "glm"
+#   )+
+#   facet_grid( ~ season)
+# 
+# # sanity check
+# wg_grid = dplyr::left_join(wg_grid, data_summary,
+#                            by = c("polygon_id_wg" = "polygon"))
 # load Sasia
 sasia = st_read("data/spatial/hills_sasia_sf.gpkg")
 ggplot(sasia)+
@@ -112,16 +142,16 @@ ggplot(sasia)+
   )+
   geom_sf(
     data = wg_grid,
-    aes(fill = N),
+    aes(fill = coef_endem),
     alpha = 0.7,
     colour = NA
   )+
   scale_fill_viridis_c(
     option = "C",
-    trans = "log10"
+    trans = "log10", direction = -1
   )+
   coord_sf(
-    ylim = c(5, 15),
-    xlim = c(75, 85)
+    ylim = c(5, 20),
+    xlim = c(72, 85)
   )+
-  facet_grid(~ season)
+  facet_grid(range_residency ~ season)
