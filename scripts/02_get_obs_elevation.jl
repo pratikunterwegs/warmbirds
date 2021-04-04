@@ -5,11 +5,11 @@ using CSV
 using DataFrames
 
 # load elevation and check
-elevation_raster = R"raster::raster('data/spatial/elevationHills.tif')"
+elevation_raster = R"raster::raster('data/spatial/elevation_sasia.tif')"
 R"raster::plot($elevation_raster, col = scico::scico(n = 20, palette = 'lajolla'))"
 
 # load observation data
-ebird_observations = CSV.read("data/output/data_observation_coords.csv",
+ebird_observations = CSV.read("data/output/data_observation_coords_WG_all.csv",
     # limit = 100000,
     DataFrame)
 # check R call
@@ -29,7 +29,6 @@ elevation_j = rcopy(elevation_data)
 
 # add to df and remove NA rows
 ebird_observations.elevation = elevation_j
-ebird_observations = dropmissing(ebird_observations)
 
 # save
-CSV.write("data/output/data_observation_elevation.csv", ebird_observations)
+CSV.write("data/output/data_observation_elevation_WG_all.csv", ebird_observations)
