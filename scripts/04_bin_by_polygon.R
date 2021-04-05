@@ -22,6 +22,9 @@ in_grid = hills_grid[unlist(unclass(
 )),]
 in_grid$polygon_id_ind = seq(nrow(in_grid))
 
+# save
+st_write(in_grid, dsn = "data/spatial/hills_sasia_grid_100km.gpkg", append = F)
+
 # check intersection
 obs_coords = st_as_sf(
   data[, c("longitude", "latitude")],
