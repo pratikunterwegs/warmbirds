@@ -9,7 +9,7 @@ R"library(sf)
 
 # load wg shapefile
 R"hills = st_read('data/spatial/hills_sasia_grid_100km.gpkg')"
-R"hills$name = hills$polygon_id_ind"
+R"hills$name = hills$polygon_id"
 
 # ranges
 R"ranges = st_read('data/spatial/soi_ranges.gpkg', 
