@@ -39,9 +39,9 @@ vignettes/*.pdf
 .Renviron
 
 # data
-data/observations/*
+data/observations/
 !data/observations/*.txt
-data/output/*
+data/output/
 !data/output/*.txt
 data/spatial/*
 !!data/spatial/*.txt
