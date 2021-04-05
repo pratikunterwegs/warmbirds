@@ -9,7 +9,7 @@ elevation_raster = R"raster::raster('data/spatial/elevation_sasia.tif')"
 R"raster::plot($elevation_raster, col = scico::scico(n = 20, palette = 'lajolla'))"
 
 # load observation data
-ebird_observations = CSV.read("data/output/data_observation_coords_WG_all.csv",
+ebird_observations = CSV.read("data/output/data_observation_coords.csv",
     # limit = 100000,
     DataFrame)
 # check R call
@@ -31,4 +31,4 @@ elevation_j = rcopy(elevation_data)
 ebird_observations.elevation = elevation_j
 
 # save
-CSV.write("data/output/data_observation_elevation_WG_all.csv", ebird_observations)
+CSV.write("data/output/data_observation_elevation.csv", ebird_observations)
