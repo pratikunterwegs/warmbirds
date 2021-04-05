@@ -4,7 +4,7 @@ using CSV
 using DataFrames
 
 # load data
-data = CSV.read("../eBirdOccupancy/data/ebird_for_expertise.txt", DataFrame)
+data = CSV.read("data/output/data_ebird.txt", DataFrame)
 
 # rename cols to remove spaces and make lowercase
 rename!(data, replace.(names(data), " " => "_"))
@@ -18,4 +18,4 @@ data_small = select(data, :scientific_name, :longitude,
 # filter!(row -> ((row.latitude < 12) || (row.longitude > 90)) , data_small)
 
 # save data
-CSV.write("data/output/data_observation_coords_WG_all.csv", data_small)
+CSV.write("data/output/data_observation_coords.csv", data_small)
